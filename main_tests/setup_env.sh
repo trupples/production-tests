@@ -476,6 +476,8 @@ if [ "$RAN_ONCE" == "0" ] ; then
 	for step in $STEPS ; do
 		echo_red "    $step"
 	done
+else
+	echo_yellow "To properly finish the setup, restart!"
 fi
 
 popd
