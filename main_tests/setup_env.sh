@@ -39,7 +39,7 @@ setup_apt_install_prereqs() {
 		libusb-dev libusb-1.0-0-dev htpdate xfce4-terminal libiec16022-dev \
 		openssh-server gpg dnsmasq libcurl4-gnutls-dev libqrencode-dev pv \
 		python3-pytest python3-libiio python3-scapy python3-scipy libzstd-dev \
-		python3.7 python3-pip
+		python3.9 python3-pip
 	/etc/init.d/htpdate restart
 	EOF
 }
@@ -156,7 +156,7 @@ setup_pyadi-iio() {
 	__download_github_common pyadi-iio
 	#Set python3 as default
 	sudo update-alternatives --install /usr/bin/python python /usr/bin/python2.7 1
-	sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.7 2
+	sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.9 2
 
 	pushd work
 	pushd pyadi-iio
