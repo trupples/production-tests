@@ -38,20 +38,54 @@ setup_apt_install_prereqs() {
 		wget unzip curl cups cups-bsd intltool itstool libxml2-utils \
 		libusb-dev libusb-1.0-0-dev htpdate xfce4-terminal libiec16022-dev \
 		openssh-server gpg dnsmasq libcurl4-gnutls-dev libqrencode-dev pv \
-		python3-pytest python3-libiio python3-scapy python3-scipy libzstd1
+		python3-pytest python3-libiio python3-scapy python3-scipy libzstd-dev \
+		python3.7 python3-pip
 	/etc/init.d/htpdate restart
 	EOF
 }
 
-__common_build_tool() {
-	local c_files
-	mkdir -p work
+setup_pip_install_prereqs() {
+	sudo_required
+	sudo -s <<-EOF
+	pip install --upgrade pip setuptools
+	EOF
+}
 
-	for c_file in $tool_c ; do
-		cp -f "src/$c_file" "work/$c_file"
-		c_files="$c_files work/$c_file"
-	done
-	gcc $c_files -o "work/$tool" $cflags $ldflags
+download_to() {
+        local url="$1"
+        local file="$2"
+
+        wget "$url" -O "$file" || {
+                echo_red "Download has failed..."
+                rm -f "$file"
+                return 1
+        }
+
+        return 0
+}
+
+download_and_unzip_to() {
+        local url="$1"
+        local dir="$2"
+
+        local tmp_file="$(mktemp)"
+
+        download_to "$url" "$tmp_file" || return 1
+
+        unzip "$tmp_file" -d "$dir" || {
+                echo_red "Unzip has failed..."
+                rm -f "$tmp_file"
+                return 1
+        }
+        rm -f "$tmp_file"
+
+        return 0
+}
+
+get_latest_release() {
+	curl --silent "https://api.github.com/repos/$1/releases/latest" |
+	grep '"tag_name":' |
+	sed -E 's/.*"([^"]+)".*/\1/'
 }
 
 __download_github_common() {
@@ -301,7 +335,6 @@ hdmi_cvt=800 480 60 6 0 0 0
 hdmi_drive=1
 max_usb_current=1
 
-dtoverlay=pi3-disable-wifi
 dtoverlay=pi3-disable-bt
 # --- end setup_env.sh
 	EOF
@@ -458,7 +491,7 @@ pushd $SCRIPT_DIR
 
 #TBD: move specific functions from this list into setup_board function
 STEPS="bashrc_update disable_sudo_passwd misc_profile_cleanup raspi_config xfce4_power_manager_settings"
-STEPS="$STEPS thunar_volman disable_lxde_automount sync_datetime apt_install_prereqs"
+STEPS="$STEPS thunar_volman disable_lxde_automount sync_datetime apt_install_prereqs pip_install_prereqs"
 STEPS="$STEPS write_autostart_config libiio"
 STEPS="$STEPS pi_boot_config disable_pi_screen_blanking"
 STEPS="$STEPS dhcp_config telemetry $BOARD"
@@ -477,7 +510,7 @@ if [ "$RAN_ONCE" == "0" ] ; then
 		echo_red "    $step"
 	done
 else
-	echo_yellow "To properly finish the setup, restart!"
+	echo_red "To properly finish the setup, reboot!"
 fi
 
 popd
