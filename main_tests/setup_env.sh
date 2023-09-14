@@ -145,7 +145,8 @@ setup_genalyzer() {
 	__download_github_common genalyzer
 
 	pushd work
-	pushd genalyzer
+	mkdir -p genalyzer/build
+	pushd genalyzer/build
 
 	cmake ../ -DPYTHON_BINDINGS=ON
 	make -j3
