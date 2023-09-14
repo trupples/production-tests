@@ -92,14 +92,18 @@ __download_github_common() {
 	local gh_prj="$1"
 	mkdir -p work
 
-	local ver=$(get_latest_release analogdevicesinc/$gh_prj)
+	# DO NOT MERGE THIS $user BODGE INTO THE OFFICIAL REPO. JUST USEFUL FOR MY TESTING ~ ioan
+	local user=trupples
+	[ $(curl -sw '%{http_code}' -o /dev/null https://api.github.com/repos/$user/$1) -ne 200 ] && user=analogdevicesinc
+
+	local ver=$(get_latest_release $user/$gh_prj)
 	[ -d work/$gh_prj ] || {
 		if [ -z "$ver" ] ; then
 			echo_red "Could not get $gh_prj release tag; cloning repo"
-			git clone https://github.com/analogdevicesinc/$gh_prj work/$gh_prj
+			git clone https://github.com/$user/$gh_prj work/$gh_prj
 		else
 			echo_green "Using latest released version '$ver' of '$gh_prj'"
-			download_and_unzip_to "https://github.com/analogdevicesinc/$gh_prj/archive/${ver}.zip" "work" || {
+			download_and_unzip_to "https://github.com/$user/$gh_prj/archive/${ver}.zip" "work" || {
 				echo_red "Could not download $gh_prj..."
 				exit 1
 			}
