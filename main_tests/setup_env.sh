@@ -232,6 +232,7 @@ Hidden=true
 	fi
 
 	# FIXME: see about generalizing this to other desktops [Gnome, MATE, LXDE, etc]
+	# for writing fw we must use sudo -E ./production_$BOARD
 	cat > $autostart_path/test-jig-tool.desktop <<-EOF
 [Desktop Entry]
 Encoding=UTF-8
@@ -352,6 +353,7 @@ hdmi_cvt=800 480 60 6 0 0 0
 hdmi_drive=1
 max_usb_current=1
 
+#dtoverlay=pi3-disable-wifi
 dtoverlay=pi3-disable-bt
 # --- end setup_env.sh
 	EOF
@@ -462,6 +464,24 @@ setup_check_internet() {
 
 ## Board Function Area ##
 
+setup_MAX-ARDUINO() {
+	pip install esptool==4.1
+	mkdir max-arduino
+	cd max-arduino
+	wget https://github.com/amiclaus/linux_noos_guides/releases/download/release/ESP32-WROOM-32-AT-NINA-W102.zip
+	unzip ESP32-WROOM-32-AT-NINA-W102.zip -d  "$(basename -s .zip ESP32-WROOM-32-AT-NINA-W102.zip)"
+	rm -rf ESP32-WROOM-32-AT-NINA-W102.zip
+
+}
+
+setup_SWIOT() {
+	setup_pyadi-iio
+}
+
+setup_60GHZ-CONN(){
+	setup_pyadi-iio
+}
+
 setup_ADV9361_CRR-SOM() {
 		:
 }
@@ -507,7 +527,7 @@ fi
 
 board_is_supported "$BOARD" || {
 	echo_red "Board '$BOARD' is not supported by this script"
-	echo_red "   Supported boards are '$SUPPORTED_BOARDS'"
+	echo_red "Supported boards are '$SUPPORTED_BOARDS'"
 	exit 1
 }
 
