@@ -540,15 +540,15 @@ ssh_cmd() {
 	}
 
 	[ -z "$2" ] || {
-		$USER = $2
+		$USER=$2
 	}
 
 	[ -z "$3" ] || {
-		$CLIENT = $3
+		$CLIENT=$3
 	}
 
 	[ -z "$4" ] || {
-		$PASS = $4
+		$PASS=$4
 	}
 
 	sshpass -p${PASS} ssh -q -t -oConnectTimeout=10 -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -oCheckHostIP=no "$USER"@"$CLIENT" "$CMD"

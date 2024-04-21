@@ -421,7 +421,7 @@ setup_dhcp_config() {
     cat >> /etc/dhcpcd.conf <<-EOF
 # --- added by setup_env.sh
 interface eth0
-static ip_address=192.168.0.1/24
+static ip_address=192.168.0.1/16
 #static routers=192.168.0.1
 #static domain_name_servers=192.168.0.1
 static domain_search=
