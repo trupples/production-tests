@@ -16,7 +16,6 @@ case $MODE in
             handle_error_state "BOARD_SERIAL"
             exit 1;
         fi
-        $SCRIPT_DIR/led_test.sh
         ;;
 
     *) echo "Invalid option $MODE" ;;
