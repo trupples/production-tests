@@ -454,6 +454,7 @@ setup_sync_datetime() {
 	sudo date +"%d %b %Y %T %Z" -s "$(curl -s --head http://google.com | grep '^Date:' | cut -d' ' -f 3-)"
 }
 
+
 setup_check_internet() {
 	ping -c1 -q 8.8.8.8 || {
 		echo_red "No internet connection. Required for future setup steps"
@@ -463,6 +464,16 @@ setup_check_internet() {
 
 
 ## Board Function Area ##
+
+setup_PQM() {
+	sudo apt-get install inotify-tools
+	sudo apt install rsync
+}
+
+setup_EV-CHARGER() {
+	sudo apt-get install inotify-tools
+	sudo apt install rsync 
+}
 
 setup_MAX-ARDUINO() {
 	pip install esptool==4.1
