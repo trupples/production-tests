@@ -13,15 +13,19 @@ source $SCRIPT_DIR/lib/utils.sh
 while true; do
     echo_red "Please make sure the Raspberry Pi is connected to Wi-fi"
     echo_blue "Please enter your choice: "
-    options=("System Test" "Power-off Pi")
+    options=("System Test" "Erase Flash" "Power-off Pi")
     select opt in "${options[@]}"; do
         case $REPLY in
 
         1)
-			echo_blue "Starting System Test"
-			production "crr" "$opt" "PQM"
-			break ;;
-        2) 
+            echo_blue "Starting System Test"
+            production "crr" "$opt" "PQM"
+            break ;;
+        2)
+            echo_blue "Erasing flash"
+            production "crr" "$opt" "PQM"
+            break ;;
+        3) 
             enforce_root
             poweroff
             break 2;;

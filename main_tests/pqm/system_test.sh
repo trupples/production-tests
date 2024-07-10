@@ -116,7 +116,13 @@ assert_line_is "t1lsocket"
 echo '[11] T1L socket test'
 read -u 4 ip
 echo IP: $ip
-echo 'NOT IMPLEMENTED! TODO: Connect via T1L to port 10000 and check that it echoes back properly!'
+
+ping -I eth1 -c 4 $ip && {
+	echo_green "PASSED"
+} || {
+	echo_red "FAILED"
+	RESULT=1
+}
 
 exit $RESULT
 

@@ -1,28 +1,14 @@
 #!/bin/bash
 
-#RELEASE_FW=https://swdownloads.analog.com/cse/prod_test_rel/ev_charger_fw/ad-acevsecrdset-sl.zip
-FW_DOWNLOAD_PATH=/home/analog/production-tests/main_tests/pqm
-
-# cp the hex file to daplink
 mountpoint=$(mount | awk '/DAPLINK/ { for (i=1; i<=NF; i++) if ($i ~ "/DAPLINK") print $i }')
 echo $mountpoint
 
+
 # Start monitoring the mountpoint
 inotifywait -m -e unmount "$mountpoint" | (
+	touch $mountpoint/erase.act
+	sync
 
-    #wget -T 5 $RELEASE_FW -O $FW_DOWNLOAD_PATH/ad-acevsecrdset-sl.zip
-    #unzip $FW_DOWNLOAD_PATH/ad-acevsecrdset-sl.zip -d $FW_DOWNLOAD_PATH
-    ret=$?
- 
-    if [ $ret == 0 ];then
-	    echo "wget success"
-        rsync -ah -v --progress $FW_DOWNLOAD_PATH/pqm_prod_test.hex $mountpoint
-    else
-	    echo "wget error"
-	    rsync -ah -v --progress /home/analog/production-tests/main_tests/pqm/pqm_prod_test.hex $mountpoint
-    fi
-
-    sync
     while read -r directory event filename; do
         echo "$mountpoint has been unmounted. Waiting for it to be mounted again..."
         start_time=$(date +%s)
@@ -43,8 +29,6 @@ inotifywait -m -e unmount "$mountpoint" | (
         done
     done
 )
-
-# verify if there s a FAIL.txt file
 
 if [[ -f "${mountpoint}/FAIL.txt" ]]; then
 	echo "FAILED"
