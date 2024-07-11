@@ -3,126 +3,180 @@ SCRIPT_DIR="$(readlink -f $(dirname $0))"
 source $SCRIPT_DIR/../lib/utils.sh
 RESULT=0
 
-pushd $SCRIPT_DIR
-
-# Run test.exc Except script in background, using fd 3,4 for communication
-mkfifo fifo_in fifo_out
-./test.exp <fifo_in >fifo_out &
-exec 3>fifo_in
-exec 4<fifo_out
-
-popd
-
-function clean_up() {
-	rm $SCRIPT_DIR/fifo_in $SCRIPT_DIR/fifo_out
+# Prepare IP route for final test. Assuming default static IP.
+ip=192.168.97.40
+sudo ip route add $ip dev eth1 && {
+	echo_green 'Added route'
+} || {
+	echo_red 'Could not add route'
 }
 
-trap clean_up EXIT
+# Serial communication using bash4+ coproc
+# ${picocom[0]} and ${picocom[1]} are file descriptors for communicating over serial
+coproc picocom (picocom -b 115200 "$tty")
 
-function assert_line_is() {
-	read -u 4 line;
-	if [[ "$line" != "$1" ]]; then
-		echo_red "FAILED"
-		exit 1
-	fi
+# Start uploading the firmware
+# Uploading, waiting for a remount, and only connecting to serial afterwards is too slow and we will miss the first few tests
+sudo $SCRIPT_DIR/firmware_prod.sh || {
+	echo_red "Firmware upload failed"
+	exit 1
 }
 
-function check_passfail() {
-	read -u 4 line;
-	if [[ "$line" == "pass" ]]; then
-		echo_green "PASSED"
-	else
-		echo_red "FAILED"
-		RESULT=1
-	fi
+echo_blue "Firmware upload succeeded"
+
+recvuntil(){
+	local timeout=30
+	while [[ $timeout -ge 0 ]]; do
+		read -u ${picocom[0]} -t 1
+		if [[ $? -ne 0 ]]; then
+			timeout=$((timeout-1))
+		fi
+		if [[ "$REPLY" =~ $1 ]]; then
+			return 0
+		fi
+	done
+	echo_red "FAILED (Timeout)"
+	RESULT=1
+	return 1
 }
 
-assert_line_is "Uploading FW"
-echo '[00] Uploading FW'
+recvuntil_test_result(){
+	local timeout=30
+	while [[ $timeout -ge 0 ]]; do
+		read -u ${picocom[0]} -t 1
+		if [[ $? -ne 0 ]]; then
+			timeout=$((timeout-1))
+		fi
+		if [[ $REPLY =~ "$1" ]]; then
+			# echo_blue "got: >$REPLY<"
+			if [[ "$REPLY" =~ Passed ]]; then
+				echo_green 'PASSED'
+				return 0
+			elif [[ $REPLY =~ Failed ]]; then
+				echo_red 'FAILED'
+				RESULT=1
+				return 1
+			fi
+		fi
+	done
+	echo_red 'FAILED (Timeout)'
+	RESULT=1
+	return 1
+}
 
-assert_line_is "UART"
-echo '[01] UART test'
-assert_line_is "pass" # UART MUST pass. If it fails, exit early.
-echo_green "PASSED"
+forward_yesno(){
+	while
+		read -p "$1" -n 1 REPLY
+	do
+		echo;
+		if [[ "$REPLY" =~ [Yy] ]]; then
+			echo -n y >&${picocom[1]}
+			break
+		elif [[ "$REPLY" =~ [Nn] ]]; then
+			echo -n n >&${picocom[1]}
+			break
+		else
+			continue # Not y,Y,n,N, repeat
+		fi
+	done
+}
 
-assert_line_is "RAM"
-echo '[02] RAM test'
-check_passfail
+echo '[01] UART Test'
+recvuntil_test_result 'UART test'
 
-assert_line_is "FLASH"
-echo '[03] FLASH test'
-check_passfail
+recvuntil 'Testing RAM'
+echo '[02] RAM Test'
+recvuntil_test_result 'RAM test'
 
-assert_line_is "LCD"
+recvuntil 'Testing FLASH'
+echo '[03] FLASH Test'
+recvuntil_test_result "FLASH test"
+
+recvuntil 'Testing LCD'
 echo '[04] LCD test'
-read -n 1 -p 'Is the display working (y/n)?' answer
-echo $answer >&3
-check_passfail
+recvuntil 'Is display working?'
+forward_yesno 'Is display working (y/n)? '
+recvuntil_test_result "LCD test"
 
-assert_line_is "RTC"
-echo '[05] RTC test'
-check_passfail
+recvuntil 'Testing RTC'
+echo '[05] RTC Test'
+recvuntil_test_result 'RTC test'
 
-assert_line_is "SD card"
-echo '[06] SD card test'
-check_passfail
+recvuntil 'Testing SD card'
+echo '[06] SD card Test'
+recvuntil_test_result 'SD card test'
 
-assert_line_is "led1"
-echo '[07] LED & BUTTON test'
-read -n 1 -p 'Is LED DS1 on (y/n)?' answer
-echo $answer >&3
-check_passfail
+recvuntil 'Testing LEDs and buttons'
+echo '[07] LED & Button Test'
+test_led(){
+	recvuntil "Is LED DS|tests Failed"
+	if [[ $REPLY =~ 'LED & BUTTON tests Failed...' ]]; then
+		echo_red FAILED
+		RESULT=1
+		return 1
+	fi
 
-assert_line_is "led2"
-read -n 1 -p 'Is LED DS2 on (y/n)?' answer
-echo $answer >&3
-check_passfail
+	if [[ $1 == 4 ]]; then
+		echo "Note: LED DS4 is also connected to the JTAG interface and may not work while the programmer is connected!"
+	fi
+	forward_yesno "Is LED DS$1 ON (y/n)? "
+}
 
-assert_line_is "led3"
-read -n 1 -p 'Is LED DS3 on (y/n)?' answer
-echo $answer >&3
-check_passfail
+test_button(){
+	recvuntil "Press button S|tests Failed"
+	if [[ $REPLY =~ 'LED & BUTTON tests Failed...' ]]; then
+		echo_red FAILED
+		RESULT=1
+		return 1
+	fi
 
-assert_line_is "led4"
-read -n 1 -p 'Is LED DS4 on (y/n)? (This pin is also part of JTAG and may not work while the programmer is connected)' answer
-echo $answer >&3
-check_passfail
+	echo "Press button S$1! (5 second timeout)"
+}
 
-assert_line_is "button1"
-echo 'Press button S1! (5 second timeout)'
-check_passfail
+test_led 1 &&
+test_led 2 &&
+test_led 3 &&
+test_led 4 &&
+test_button 1 &&
+test_button 2 &&
+test_button 3 &&
+recvuntil_test_result 'LED & BUTTON tests'
 
-assert_line_is "button2"
-echo 'Press button S2! (5 second timeout)'
-check_passfail
+recvuntil 'Testing T1L'
+echo '[08] T1L Test'
+recvuntil_test_result 'T1L tests'
 
-assert_line_is "button3"
-echo 'Press button S3! (5 second timeout)'
-check_passfail
+recvuntil 'Testing WIZ ETH'
+echo '[09] WIZ ETH Test'
+recvuntil_test_result 'WIZ ETH tests'
 
-assert_line_is "T1L"
-echo '[08] T1L test'
-check_passfail
+recvuntil 'Testing ADE9430'
+echo '[10] ADE9430 Test'
+recvuntil_test_result 'ADE9430 tests'
 
-assert_line_is "WIZ ETH"
-echo '[09] WIZ ETH test'
-check_passfail
-
-assert_line_is "ADE9430"
-echo '[10] ADE9430 test'
-check_passfail
-
-assert_line_is "t1lsocket"
-echo '[11] T1L socket test'
-read -u 4 ip
+recvuntil 'Testing T1L SOCKET'
+echo '[11] T1L SOCKET Test'
+recvuntil 'IP address: '
+ip=$(echo $REPLY | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+')
 echo IP: $ip
 
-ping -I eth1 -c 4 $ip && {
+for attempt in {1..10}; do
+	(ip link show eth1 | grep -q 'state UP') || {
+		echo_blue "Waiting for T1L link ($attempt/10)"
+		sleep 1
+		continue
+	}
+
+	ping -r -I eth1 -w 1 $ip >/dev/null 2>/dev/null || {
+		echo_blue "Waiting for ping ($attempt/10)"
+		sleep 1
+		continue
+	}
+
 	echo_green "PASSED"
-} || {
-	echo_red "FAILED"
-	RESULT=1
-}
+	exit $RESULT
+done
 
+echo_red "FAILED"
+RESULT=1
 exit $RESULT
-
