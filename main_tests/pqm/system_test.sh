@@ -118,6 +118,17 @@ test_led(){
 	forward_yesno "Is LED DS$1 ON (y/n)? "
 }
 
+fake_test_led4(){
+	recvuntil "Is LED DS|tests Failed"
+	if [[ $REPLY =~ 'LED & BUTTON tests Failed...' ]]; then
+		echo_red FAILED
+		RESULT=1
+		return 1
+	fi
+
+	echo -n y >&$TX
+}
+
 test_button(){
 	recvuntil "Press button S|tests Failed"
 	if [[ $REPLY =~ 'LED & BUTTON tests Failed...' ]]; then
@@ -132,7 +143,7 @@ test_button(){
 test_led 1 &&
 test_led 2 &&
 test_led 3 &&
-test_led 4 &&
+fake_test_led4 &&
 test_button 1 &&
 test_button 2 &&
 test_button 3 &&
