@@ -5,3 +5,4 @@ source $SCRIPT_DIR/../lib/utils.sh
 
 touch /tmp/erase.act
 daplink_upload /tmp/erase.act
+
