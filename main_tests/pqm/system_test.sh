@@ -84,26 +84,22 @@ recvuntil 'Testing RAM'
 echo '[02] RAM Test'
 recvuntil_test_result 'RAM test'
 
-recvuntil 'Testing FLASH'
-echo '[03] FLASH Test'
-recvuntil_test_result "FLASH test"
-
 recvuntil 'Testing LCD'
-echo '[04] LCD test'
+echo '[03] LCD test'
 recvuntil 'Is display working?'
 forward_yesno 'Is display working (y/n)? '
 recvuntil_test_result "LCD test"
 
 recvuntil 'Testing RTC'
-echo '[05] RTC Test'
+echo '[04] RTC Test'
 recvuntil_test_result 'RTC test'
 
 recvuntil 'Testing SD card'
-echo '[06] SD card Test'
+echo '[05] SD card Test'
 recvuntil_test_result 'SD card test'
 
 recvuntil 'Testing LEDs and buttons'
-echo '[07] LED & Button Test'
+echo '[06] LED & Button Test'
 test_led(){
 	recvuntil "Is LED DS|tests Failed"
 	if [[ $REPLY =~ 'LED & BUTTON tests Failed...' ]]; then
@@ -148,6 +144,10 @@ test_button 1 &&
 test_button 2 &&
 test_button 3 &&
 recvuntil_test_result 'LED & BUTTON tests'
+
+recvuntil 'Testing FLASH'
+echo '[07] FLASH Test'
+recvuntil_test_result "FLASH test"
 
 recvuntil 'Testing T1L'
 echo '[08] T1L Test'
