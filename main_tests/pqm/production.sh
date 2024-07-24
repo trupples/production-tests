@@ -5,9 +5,9 @@ source $SCRIPT_DIR/../lib/utils.sh
 
 MODE="$1"
 case $MODE in
-    "Erase Flash")
+    "Erase Flash and System Test")
         sudo $SCRIPT_DIR/erase_flash.sh
-        ;;
+	;& # bash 4+ fallthrough
 
     "System Test")
         # Upload and run test firmware
