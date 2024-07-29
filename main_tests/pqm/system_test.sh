@@ -167,6 +167,8 @@ recvuntil 'IP address: '
 ip=$(echo $REPLY | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+')
 echo IP: $ip
 
+sudo ip link set eth1 down
+sudo ip link set eth1 up
 sudo ip route add $ip dev eth1 && {
 	echo_green 'Added route'
 } || {
