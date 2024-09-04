@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Uploads testing firmware.
+# SHOULD be later overwritten by final production firmware (./firmware_final.sh) after tests pass.
+
 SCRIPT_DIR="$(readlink -f $(dirname $0))"
 source $SCRIPT_DIR/../lib/utils.sh
 
