@@ -464,6 +464,13 @@ setup_check_internet() {
 
 ## Board Function Area ##
 
+setup_GMSL717MIPI() {
+	# Prepare offline carrier files
+	pushd gmsl717mipi/carrier_setup
+	./prepare_carrier_setup.sh
+	popd
+}
+
 setup_MAX-ARDUINO() {
 	pip install esptool==4.1
 	mkdir max-arduino
@@ -512,6 +519,7 @@ setup_ADV9009_CRR-SOM(){
 setup_FMCDAQ3(){
 	setup_pyadi-iio
 }
+
 #----------------------------------#
 # Main section                     #
 #----------------------------------#
